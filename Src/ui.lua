@@ -1,8 +1,7 @@
 --[[
-Fluent Renewed — Core-Min (Pinned Icons+Themes URLs, FIXED env)
-- Single file, execute and done.
-- Globals: __BUNDLE_ROOT and __MODULES exposed to module chunks.
-- Custom 'require' is provided via shared environment table.
+Fluent Renewed — Core-Min (Pinned Icons+Themes URLs, SEEDED env)
+- Seeds 'game', 'workspace', 'getgenv', 'shared', 'syn' into module env to avoid nil on sandboxed executors.
+- Single file; Icons & Themes fetched via pinned URLs.
 - Keybinds: '-' collapse, RightControl hide.
 ]]
 __MODULES = {
@@ -5430,12 +5429,23 @@ local __CACHE = {}
 local __ICONS_URL = "https://raw.githubusercontent.com/yaeteri64-rgb/Fluent-Angeryy/refs/heads/main/Icon/Icon.lua"
 local __THEMES_URL = "https://raw.githubusercontent.com/yaeteri64-rgb/Fluent-Angeryy/refs/heads/main/Themes/Theme.lua"
 
+-- Seed environment with important Roblox globals in case executor sandbox doesn't forward __index to real _G
+local __SEED = {}
+local ok
+ok, __SEED.game = pcall(function() return game end); if not ok then __SEED.game = nil end
+ok, __SEED.workspace = pcall(function() return workspace end); if not ok then __SEED.workspace = nil end
+ok, __SEED.getgenv = pcall(function() return getgenv end); if not ok then __SEED.getgenv = nil end
+ok, __SEED.shared = pcall(function() return shared end); if not ok then __SEED.shared = nil end
+ok, __SEED.sethiddenprop = pcall(function() return sethiddenproperty or sethiddenprop end); if not ok then __SEED.sethiddenprop = nil end
+ok, __SEED.gethiddenprop = pcall(function() return gethiddenproperty or gethiddenprop end); if not ok then __SEED.gethiddenprop = nil end
+ok, __SEED.syn = pcall(function() return syn end); if not ok then __SEED.syn = nil end
+
 local function __fetch(url)
-    if syn and syn.request then
-        local res = syn.request({Url = url, Method = "GET"})
+    if __SEED.syn and __SEED.syn.request then
+        local res = __SEED.syn.request({Url = url, Method = "GET"})
         if res and res.Body then return res.Body end
     end
-    return game:HttpGet(url)
+    return __SEED.game and __SEED.game:HttpGet(url) or game:HttpGet(url)
 end
 
 local function __icons_provider()
@@ -5506,10 +5516,10 @@ local function __custom_require(arg)
             elseif string.sub(arg, 1, 11) == "Src/Themes/" then
                 result = __get_theme(arg)
             else
-                local g = (rawget(__ENV, "getgenv") and getgenv()) or {}
+                local g = (__SEED.getgenv and __SEED.getgenv()) or {}
                 if type(g.FLUENT_REQUIRE) == "function" then
-                    local ok, res = pcall(g.FLUENT_REQUIRE, arg)
-                    if ok then result = res end
+                    local ok2, res = pcall(g.FLUENT_REQUIRE, arg)
+                    if ok2 then result = res end
                 end
             end
         end
@@ -5517,11 +5527,18 @@ local function __custom_require(arg)
         __CACHE[arg] = result
         return result
     else
-        return require(arg) -- fall back for Instances
+        return require(arg) -- Instances
     end
 end
 
-__ENV = setmetatable({require = __custom_require}, {__index = _G})
+__ENV = setmetatable({
+    require = __custom_require,
+    game = __SEED.game or game,
+    workspace = __SEED.workspace or workspace,
+    getgenv = __SEED.getgenv or getgenv,
+    shared = __SEED.shared or shared,
+    syn = __SEED.syn,
+}, {__index = _G})
 
 
 -- Entry
