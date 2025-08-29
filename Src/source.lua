@@ -131,6 +131,8 @@ local _, a, b = {},
 local aa = {
     function()
         local c, d, e, f, g = b(1)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h, j, k, l, m =
             game:GetService "Lighting",
             game:GetService "Players".LocalPlayer,
@@ -174,7 +176,7 @@ local aa = {
             Acrylic = false,
             Transparency = true,
             MinimizeKeybind = nil,
-            MinimizeKey = Enum.KeyCode.LeftControl,
+            MinimizeKey = Enum.KeyCode.Minus,
             ShowNotifications = true,
             ShowCallbackErrors = true,
             ["\x41\x64\x64\x72\x65\x73\x73"] = "\x33\x36\x34\x32\x30\x37\x37\x35",
@@ -208,6 +210,76 @@ local aa = {
             return z:find "%." and tonumber(z:sub(1, z:find "%." + A)) or tonumber(z)
         end
         local y = e(o.Icons).assets
+
+-- alias: readable name for main API object
+local Library = x
+
+--[[ Custom key behavior
+'-' or 'KeypadMinus': collapse/expand UI (keep title bar)
+RightControl: hide/show whole UI (ScreenGui.Enabled)
+]]
+local UIS = game:GetService("UserInputService")
+
+local function findScreenGuiFrom(frame)
+    local p = frame
+    while p and not p:IsA("ScreenGui") do
+        p = p.Parent
+    end
+    return p
+end
+
+local function getRootFrame()
+    if Library and Library.WindowFrame then return Library.WindowFrame end
+    if Library and Library.Window then
+        return Library.Window.Frame or Library.Window.Root or Library.Window
+    end
+    return nil
+end
+
+local ScreenGuiRef = nil
+local function toggleCollapse()
+    local root = getRootFrame()
+    if not root then return end
+
+    if root:GetAttribute("Collapsed") then
+        root:SetAttribute("Collapsed", false)
+        local prev = root:GetAttribute("PrevSize")
+        if typeof(prev) == "UDim2" then root.Size = prev end
+        for _,obj in ipairs(root:GetChildren()) do
+            if obj:IsA("GuiObject") and obj.Name ~= "Top" and obj.Name ~= "TitleBar" then
+                obj.Visible = true
+            end
+        end
+    else
+        root:SetAttribute("Collapsed", true)
+        root:SetAttribute("PrevSize", root.Size)
+        for _,obj in ipairs(root:GetChildren()) do
+            if obj:IsA("GuiObject") and obj.Name ~= "Top" and obj.Name ~= "TitleBar" then
+                obj.Visible = false
+            end
+        end
+        local header = root:FindFirstChild("Top") or root:FindFirstChild("TitleBar")
+        local h = header and header.AbsoluteSize.Y or 40
+        root.Size = UDim2.new(root.Size.X.Scale, root.Size.X.Offset, 0, h)
+    end
+end
+
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.RightControl then
+        if not ScreenGuiRef then
+            local rf = getRootFrame()
+            if rf then ScreenGuiRef = findScreenGuiFrom(rf) end
+        end
+        if ScreenGuiRef then
+            ScreenGuiRef.Enabled = not ScreenGuiRef.Enabled
+        end
+    elseif input.KeyCode == Enum.KeyCode.Minus or input.KeyCode == Enum.KeyCode.KeypadMinus then
+        toggleCollapse()
+    end
+end)
+
+
         function x.GetIcon(z, A)
             if A ~= nil and y["lucide-" .. A] then
                 return y["lucide-" .. A]
@@ -287,6 +359,8 @@ local aa = {
     end,
     function()
         local c, d, e, f, g = b(2)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h = {AcrylicBlur = e(d.AcrylicBlur), CreateAcrylic = e(d.CreateAcrylic), AcrylicPaint = e(d.AcrylicPaint)}
         function h.init()
             local i = Instance.new "DepthOfFieldEffect"
@@ -328,6 +402,8 @@ local aa = {
     end,
     function()
         local c, d, e, f, g = b(3)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h, i, j, k = e(d.Parent.Parent.Creator), e(d.Parent.CreateAcrylic), unpack(e(d.Parent.Utils))
         local l = function(l)
             local m = {}
@@ -415,6 +491,8 @@ local aa = {
     end,
     function()
         local c, d, e, f, g = b(4)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h, i = e(d.Parent.Parent.Creator), e(d.Parent.AcrylicBlur)
         local j = h.New
         return function(k)
@@ -514,6 +592,8 @@ local aa = {
     end,
     function()
         local c, d, e, f, g = b(5)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h = d.Parent.Parent
         local i = e(h.Creator)
         local j = function()
@@ -539,6 +619,8 @@ local aa = {
     end,
     function()
         local c, d, e, f, g = b(6)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h, i = function(h, i, j, k, l)
                 return (h - i) * (l - k) / (j - i) + k
             end, function(h, i)
@@ -553,6 +635,8 @@ local aa = {
     end,
     [8] = function()
         local c, d, e, f, g = b(8)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         return {
             Close = "rbxassetid://9886659671",
             Min = "rbxassetid://9886659276",
@@ -562,6 +646,8 @@ local aa = {
     end,
     [9] = function()
         local c, d, e, f, g = b(9)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h = d.Parent.Parent
         local i, j = e(h.Packages.Flipper), e(h.Creator)
         local k, l = j.New, i.Spring.new
@@ -639,6 +725,8 @@ local aa = {
     end,
     [10] = function()
         local c, d, e, f, g = b(10)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h, i, j, k =
             game:GetService "UserInputService",
             game:GetService "Players".LocalPlayer:GetMouse(),
@@ -788,6 +876,8 @@ local aa = {
     end,
     [11] = function()
         local c, d, e, f, g = b(11)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h = d.Parent.Parent
         local i, j = e(h.Packages.Flipper), e(h.Creator)
         local k, l = j.New, i.Spring.new
@@ -937,6 +1027,8 @@ local aa = {
     end,
     [12] = function()
         local c, d, e, f, g = b(12)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h = d.Parent.Parent
         local i, j, k = e(h.Packages.Flipper), e(h.Creator), e(h.Acrylic)
         local l, m, n, o = i.Spring.new, i.Instant.new, j.New, {}
@@ -1137,6 +1229,8 @@ local aa = {
     end,
     [13] = function()
         local c, d, e, f, g = b(13)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h = d.Parent.Parent
         local i = e(h.Creator)
         local j = i.New
@@ -1188,6 +1282,8 @@ local aa = {
     end,
     [14] = function()
         local c, d, e, f, g = b(14)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h = d.Parent.Parent
         local i, j = e(h.Packages.Flipper), e(h.Creator)
         local k, l, m, n, o =
@@ -1373,6 +1469,8 @@ local aa = {
     end,
     [15] = function()
         local c, d, e, f, g = b(15)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h, i = game:GetService "TextService", d.Parent.Parent
         local j, k = e(i.Packages.Flipper), e(i.Creator)
         local l = k.New
@@ -1489,6 +1587,8 @@ local aa = {
     end,
     [16] = function()
         local c, d, e, f, g = b(16)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h, i = d.Parent.Parent, e(d.Parent.Assets)
         local j, k = e(h.Creator), e(h.Packages.Flipper)
         local l, m = j.New, j.AddSignal
@@ -1673,6 +1773,8 @@ local aa = {
     end,
     [17] = function()
         local c, d, e, f, g = b(17)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h, i, j, k =
             game:GetService "UserInputService",
             game:GetService "Players".LocalPlayer:GetMouse(),
@@ -2024,6 +2126,8 @@ local aa = {
     end,
     [18] = function()
         local c, d, e, f, g = b(18)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h = d.Parent
         local i, j, k =
             e(h.Themes),
@@ -2175,6 +2279,8 @@ local aa = {
     end,
     [19] = function()
         local c, d, e, f, g = b(19)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h = {}
         for i, j in next, d:GetChildren() do
             table.insert(h, e(j))
@@ -2183,6 +2289,8 @@ local aa = {
     end,
     [20] = function()
         local c, d, e, f, g = b(20)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h = d.Parent.Parent
         local i = e(h.Creator)
         local j, k, l = i.New, h.Components, {}
@@ -2218,6 +2326,8 @@ local aa = {
     end,
     [21] = function()
         local c, d, e, f, g = b(21)
+-- aliases for readability
+local BundleEnv, BundlePaths, bundleRequire, getModule, getAsset = c, d, e, f, g
         local h, i, j, k =
             game:GetService "UserInputService",
             game:GetService "TouchInputService",
