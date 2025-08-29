@@ -1,10 +1,11 @@
 --[[
-Fluent Renewed — Core-Min (Pinned Icons+Themes URLs)
-- Single file, similar to original usage: execute and done.
-- Icons fetched from pinned URL. Themes fetched from pinned provider URL (path-aware).
+Fluent Renewed — Core-Min (Pinned Icons+Themes URLs, FIXED env)
+- Single file, execute and done.
+- Globals: __BUNDLE_ROOT and __MODULES exposed to module chunks.
+- Custom 'require' is provided via shared environment table.
 - Keybinds: '-' collapse, RightControl hide.
 ]]
-local __MODULES = {
+__MODULES = {
     ["Src/Components/Assets"] = [=[
 return { 
 	Close = "rbxassetid://9886659671",
@@ -5385,7 +5386,7 @@ return Library
 ]=]
 }
 
-local __BUNDLE_ROOT = {
+__BUNDLE_ROOT = {
 ["Src"] = {
     ["Components"] = {
         ["Assets"] = "Src/Components/Assets",
@@ -5429,17 +5430,6 @@ local __CACHE = {}
 local __ICONS_URL = "https://raw.githubusercontent.com/yaeteri64-rgb/Fluent-Angeryy/refs/heads/main/Icon/Icon.lua"
 local __THEMES_URL = "https://raw.githubusercontent.com/yaeteri64-rgb/Fluent-Angeryy/refs/heads/main/Themes/Theme.lua"
 
-local function __bundle_require_raw(path, env)
-    local src = __MODULES[path]
-    if not src then return nil, "missing" end
-    local chunk, err = loadstring(src)
-    if not chunk then error("compile error in "..path..": "..tostring(err)) end
-    setfenv(chunk, env or getfenv(1))
-    local ok, result = pcall(chunk)
-    if not ok then error("runtime error in "..path..": "..tostring(result)) end
-    return result
-end
-
 local function __fetch(url)
     if syn and syn.request then
         local res = syn.request({Url = url, Method = "GET"})
@@ -5452,7 +5442,7 @@ local function __icons_provider()
     local body = __fetch(__ICONS_URL)
     local chunk, err = loadstring(body)
     assert(chunk, "icons load error (PINNED): "..tostring(err))
-    setfenv(chunk, getfenv(1))
+    setfenv(chunk, __ENV)
     return chunk()
 end
 
@@ -5460,12 +5450,11 @@ local function __themes_provider()
     local body = __fetch(__THEMES_URL)
     local chunk, err = loadstring(body)
     assert(chunk, "themes provider load error (PINNED): "..tostring(err))
-    setfenv(chunk, getfenv(1))
+    setfenv(chunk, __ENV)
     local mod = chunk()
     if type(mod) == "function" then
         return mod
     elseif type(mod) == "table" then
-        -- Wrap common table styles: direct map, map without prefix, or methods
         return function(path)
             local v = mod[path]
                 or mod[path:gsub("^Src/Themes/", "")]
@@ -5474,7 +5463,7 @@ local function __themes_provider()
             if type(v) == "string" then
                 local f, e = loadstring(v)
                 assert(f, "theme source compile error: "..tostring(e))
-                setfenv(f, getfenv(1))
+                setfenv(f, __ENV)
                 return f()
             end
             return v
@@ -5493,12 +5482,21 @@ end
 local __THEMES = false
 local function __get_theme(path)
     if not __THEMES then __THEMES = __themes_provider() end
-    local v = __THEMES(path)
-    return v
+    return __THEMES(path)
 end
 
-local __ORIG_REQUIRE = require
-local function require(arg)
+local function __bundle_require_raw(path)
+    local src = __MODULES[path]
+    if not src then return nil, "missing" end
+    local chunk, err = loadstring(src)
+    if not chunk then error("compile error in "..path..": "..tostring(err)) end
+    setfenv(chunk, __ENV)
+    local ok, result = pcall(chunk)
+    if not ok then error("runtime error in "..path..": "..tostring(result)) end
+    return result
+end
+
+local function __custom_require(arg)
     if type(arg) == "string" then
         if __CACHE[arg] ~= nil then return __CACHE[arg] end
         local result, missing = __bundle_require_raw(arg)
@@ -5508,8 +5506,7 @@ local function require(arg)
             elseif string.sub(arg, 1, 11) == "Src/Themes/" then
                 result = __get_theme(arg)
             else
-                -- Optional: generic hook
-                local g = (rawget(getfenv(), "getgenv") and getgenv()) or {}
+                local g = (rawget(__ENV, "getgenv") and getgenv()) or {}
                 if type(g.FLUENT_REQUIRE) == "function" then
                     local ok, res = pcall(g.FLUENT_REQUIRE, arg)
                     if ok then result = res end
@@ -5520,9 +5517,11 @@ local function require(arg)
         __CACHE[arg] = result
         return result
     else
-        return __ORIG_REQUIRE(arg)
+        return require(arg) -- fall back for Instances
     end
 end
+
+__ENV = setmetatable({require = __custom_require}, {__index = _G})
 
 
 -- Entry
